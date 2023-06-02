@@ -216,7 +216,6 @@ df1.isnull().sum()
 df1['Quantity'] = df1['Quantity'].fillna(df1['Quantity'].mean())
 
 # sostituisco i dati mancanti delle categoriche con il valore più frequente
-
 df1['PBI Item.cnl_ordertype'] = df1['PBI Item.cnl_ordertype'].fillna(df1['PBI Item.cnl_ordertype'].mode()[0])
 df1['Total Amount (Base)'] = df1['Total Amount (Base)'].fillna(df1['Total Amount (Base)'].mode()[0])
 
@@ -416,9 +415,6 @@ sns.countplot('Loyalty', data=ca_updated, palette=colors)
 plt.title('Class Distributions \n (0: Infedele || 1: Leale)', fontsize=14)
 ca_updated['Loyalty'].value_counts()
 
-print('Leale', round(ca_updated['Loyalty'].value_counts()[1]/len(df) * 100,2), '% of the dataset')
-print('Infedele', round(ca_updated['Loyalty'].value_counts()[0]/len(df) * 100,2), '% of the dataset')
-
 #matrice di correlazione scelgiere una delle due 
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -494,10 +490,16 @@ y_pred = rf.predict(x_test)
 plot_confusion_matrix(rf, x_test, y_test, cmap="Purples")
 print (classification_report(y_test, y_pred))
 
+# Calcolo dell'importanza delle features
+column_names = ['Gender', 'Macro_Area', 'Consent_for_Marketing',
+                'Consent_for_Analysis', 'Consent_for_SMS', 'Consent_for_Newsletter',
+                'Pref_Email', 'Pref_Sms', 'Pref_Telephone', 'Pref_Mail', 'Sales_Habit',
+                'Customer_Habit', 'Data_Collection_Score', 'Unsubscribed_Magnews',
+                'Quantity', 'Total_Amount_Base', 'number_of_purchases',
+                'most_frequent_order_type', 'latest_year']
 rf.feature_importances_
-pd.Series(rf.feature_importances_).nlargest(25).plot(kind='barh')
+feature_importances = pd.Series(rf.feature_importances_, index=column_names).nlargest(19).plot(kind='barh')
 plt.show()
-print(x_ress)
 
 # Curva AUC
 from sklearn.metrics import roc_curve, auc
@@ -529,6 +531,13 @@ predictions = lr.predict(x_test)
 print(classification_report(y_test, predictions))
 plot_confusion_matrix(lr, x_test, y_test, cmap="Reds")
 
+# Calcolo dell'importanza delle features
+feature_importance = lr.coef_[0]
+normalized_importance = abs(feature_importance) / sum(abs(feature_importance))
+feature_indices = range(len(normalized_importance))
+plt.bar(feature_indices, normalized_importance)
+plt.xticks(feature_indices, column_names, rotation='vertical')  
+plt.show()
 
 # Curva AUC
 from sklearn.metrics import roc_curve, auc
@@ -559,6 +568,15 @@ predictions = clf.predict(x_test)
 print(classification_report(y_test, predictions))
 plot_confusion_matrix(clf, x_test, y_test, cmap="Reds")
 
+best_model = clf.best_estimator_
+
+# Calcolo dell'importanza delle features
+feature_importance = best_model.feature_importances_
+feature_indices = range(len(feature_importance))
+plt.barh(feature_indices, feature_importance)
+plt.yticks(feature_indices, column_names)  
+plt.show()
+
 # Curva AUC
 from sklearn.metrics import roc_curve, auc
 
@@ -588,6 +606,16 @@ y_pred = gnb.predict(x_test)
 print(classification_report(y_test, predictions))
 plot_confusion_matrix(gnb, x_test, y_test, cmap="Oranges")
 
+# Calcolo dell'importanza delle features utilizzando la deviazione standard
+class_priors = gnb.class_prior_
+class_means = gnb.theta_ # Calcolo delle medie delle features per ogni classe
+class_std = gnb.sigma_ # Calcolo delle deviazioni standard delle features per ogni classe
+feature_importance = np.mean(class_std, axis=0)
+feature_indices = range(len(feature_importance))
+plt.barh(feature_indices, feature_importance)
+plt.yticks(feature_indices, column_names)  
+plt.show()
+
 # Curva AUC
 from sklearn.metrics import roc_curve, auc
 
@@ -616,6 +644,16 @@ classifier.fit(x_ress, y_ress)
 y_pred = classifier.predict(x_test)
 print(classification_report(y_test,y_pred))
 plot_confusion_matrix(classifier, x_test, y_test, cmap="Greens")
+
+# Calcolo del punteggio F-test per ogni features
+from sklearn.feature_selection import SelectKBest, f_classif
+selector = SelectKBest(score_func=f_classif, k='all')
+selector.fit(x_ress, y_ress)
+feature_importance = selector.scores_
+feature_indices = range(len(feature_importance))
+plt.barh(feature_indices, feature_importance)
+plt.yticks(feature_indices, column_names) 
+plt.show()
 
 # Curva AUC
 from sklearn.metrics import roc_curve, auc
@@ -656,7 +694,12 @@ y_pred = model.predict(x_test)
 y_pred
 plot_confusion_matrix(model, x_test, y_test, cmap="Reds")
 print (classification_report(y_test, y_pred))
-           
+
+# Calcolo dell'importanza delle features           
+model.feature_importances_
+feature_importances = pd.Series(model.feature_importances_, index=column_names).nlargest(19).plot(kind='barh')
+plt.show()
+
 # Curva AUC
 from sklearn.metrics import roc_curve, auc
 
